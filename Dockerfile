@@ -1,34 +1,30 @@
 FROM debian:stretch
+MAINTAINER Dennis Fleischmann <dennis.fleischmann@hotmail.com>
 
-# install dependencies
-RUN apt-get update \
-    && apt-get install -y \
-    gcc \
-    libc6-dev \
-    make \
-    openssl \
-    libssl-dev \
-    libpcre3 \
-    libpcre3-dev \
-    zlib1g \
-    zlib1g-dev \
-    wget
+RUN apt-get update && apt-get -y upgrade && \
+    apt-get install -y wget libpcre3-dev build-essential libssl-dev zlib1g-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-WORKDIR /usr/local/src
+WORKDIR /opt
 
+RUN wget http://nginx.org/download/nginx-1.23.1.tar.gz && \
+    tar -zxvf nginx-1.*.tar.gz && \
+    cd nginx-1.* && \
+    ./configure --prefix=/opt/nginx --user=nginx --group=nginx --with-http_ssl_module --with-ipv6 --with-threads --with-stream --with-stream_ssl_module && \
+    make && make install && \
+    cd .. && rm -rf nginx-1.*
 
-# download and extract nginx
-RUN wget http://nginx.org/download/nginx-1.25.1.tar.gz \
-    && tar zxvf nginx-1.25.1.tar.gz
+# nginx user
+RUN adduser --system --no-create-home --disabled-login --disabled-password --group nginx
 
-WORKDIR /usr/local/src/nginx-1.25.1
+# config dirs
+RUN mkdir /opt/nginx/http.conf.d && mkdir /opt/nginx/stream.conf.d
 
-# configure, compile and install nginx
-RUN ./configure --with-http_ssl_module --with-stream \
-    && make \
-    && make install
+ADD nginx.conf /opt/nginx/conf/nginx.conf
+ADD zero_downtime_reload.sh /opt/nginx/sbin/zero_downtime_reload.sh
 
-EXPOSE 80 443 8443
+WORKDIR /
 
-# start nginx in foreground
-CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
+EXPOSE 80 443
+
+CMD ["/opt/nginx/sbin/nginx", "-g", "daemon off;"]
