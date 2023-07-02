@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:bullseye
 MAINTAINER Dennis Fleischmann <dennis.fleischmann@hotmail.com>
 
 RUN apt-get update && apt-get -y upgrade && \
